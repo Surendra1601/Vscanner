@@ -79,7 +79,32 @@ def search_exploits(service, version):
         logging.error(f"SearchSploit error: {e}")
         return "Error retrieving exploits."
 
+
 def save_full_report(target, scan_results):
     """Save results of all ports into one report."""
+    output_path = "/output/scan_report.txt"
+
     report = f"Target: {target}\n\n"
     report += "===== OPEN PORTS =====\n"
+
+    for port, data in scan_results.items():
+        report += f"\nPort {port} - Service: {data['service']} - Version: {data['version']}\n"
+        report += "Exploits:\n"
+        report += search_exploits(data["service"], data["version"])
+        report += "\n" + ("-" * 40) + "\n"
+
+    os.makedirs("/output", exist_ok=True)
+
+    with open(output_path, "w") as f:
+        f.write(report)
+
+    logging.info(f"Report saved to: {output_path}")
+
+def main():
+    args = parse_args()
+    check_dependencies()
+    scan_results = aggressive_scan(args.target)
+    save_full_report(args.target, scan_results)
+
+if __name__ == "__main__":
+    main()
