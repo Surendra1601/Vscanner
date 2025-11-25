@@ -11,7 +11,7 @@ Vscanner is a lightweight, extensible vulnerability scanner built using Python, 
 - Exploit lookup via `SearchSploit` (Exploit-DB)
 - Dockerized environment (based on Kali Linux)
 - CI/CD enabled with GitHub Actions
-- Automated report output (scan_report.txt)
+- Automated report output in file (scan_report.txt)
 
 ---
 
