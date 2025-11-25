@@ -1,6 +1,6 @@
-# 🔍 VulnScanner: DevOps Vulnerability Scanner
+# 🔍 Vscanner: Vulnerability Scanner
 
-VulnScanner is a lightweight, extensible vulnerability scanner built using Python, Nmap, and SearchSploit. It leverages containerization (Docker) and DevOps principles (CI/CD using GitHub Actions) to offer efficient vulnerability scanning and exploit matching in modern development pipelines.
+Vscanner is a lightweight, extensible vulnerability scanner built using Python, Nmap, and SearchSploit. It leverages containerization (Docker) and DevOps principles (CI/CD using GitHub Actions) to offer efficient vulnerability scanning and exploit matching in modern development pipelines.
 
 ---
 
@@ -11,6 +11,7 @@ VulnScanner is a lightweight, extensible vulnerability scanner built using Pytho
 - Exploit lookup via `SearchSploit` (Exploit-DB)
 - Dockerized environment (based on Kali Linux)
 - CI/CD enabled with GitHub Actions
+- Automated report output (scan_report.txt)
 
 ---
 
@@ -36,8 +37,8 @@ apt install exploitdb -y
 Clone the repo:
 
 ```
-git clone https://github.com/YourUsername/VulnRadar.git
-cd VulnRadar
+git clone https://github.com/YourUsesurendra1601/Vscanner.git
+cd Vscanner
 ```
 
 Install Python dependencies:
@@ -60,12 +61,12 @@ python3 scanner.py
 
 Build the Docker image:
 ```
-docker build -t vuln-scanner .
+docker build -t vscanner .
 ```
 
 Run the scanner in an interactive container:
 ```
-docker run -it vuln-scanner /bin/bash
+docker run -it vscanner /bin/bash
 ```
 
 
@@ -80,6 +81,8 @@ This project uses GitHub Actions for continuous integration. Every push runs:
 - Lint checks
 - Dependency validation
 - Docker build verification
+- Scanner execution
+- Report artifact upload
 
 CI/CD is defined in `.github/workflows/ci.yml`.
 
