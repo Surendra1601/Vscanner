@@ -82,4 +82,4 @@ def search_exploits(service, version):
 def save_full_report(target, scan_results):
     """Save results of all ports into one report."""
     report = f"Target: {target}\n\n"
-    report += "===== OPEN PORTS =====\
+    report += "===== OPEN PORTS =====\n"
