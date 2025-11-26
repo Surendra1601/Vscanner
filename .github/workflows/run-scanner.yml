@@ -2,6 +2,8 @@ name: Run Vscanner
 
 on:
   workflow_dispatch:     # Run manually
+  push:
+      branches: [ "main" ]
 
 jobs:
   scan:
