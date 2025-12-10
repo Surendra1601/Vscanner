@@ -1,7 +1,6 @@
 import nmap
 import logging
 import subprocess
-import argparse
 import sys
 import shutil
 import os
@@ -13,45 +12,41 @@ logging.basicConfig(
 )
 
 def check_dependencies():
-    """Ensure required tools are installed."""
+    """Ensure required tools and permissions are available."""
     if shutil.which("nmap") is None:
         logging.error("Nmap is not installed. Please install it and try again.")
         sys.exit(1)
+
     if shutil.which("searchsploit") is None:
         logging.error("SearchSploit is not installed. Please install it and try again.")
         sys.exit(1)
+
+    # Root permission check (Linux/macOS only)
     if hasattr(os, "geteuid") and os.geteuid() != 0:
         logging.error("This script must be run as root for aggressive scans (-A).")
         sys.exit(1)
 
-def parse_args():
-    parser = argparse.ArgumentParser(
-        description="Automated Vulnerability Scanner (Nmap + SearchSploit)"
-    )
-    parser.add_argument("target", help="Target IP or domain to scan")
-    return parser.parse_args()
 
 def aggressive_scan(target):
-    """Perform an aggressive Nmap scan."""
+    """Perform aggressive full vuln scan on target."""
     scanner = nmap.PortScanner()
+
     try:
-        logging.info(f"Performing aggressive scan on {target}...")
-        scanner.scan(target, arguments="-T4 -A -sV --version-intensity 9 --script=vuln -Pn")
-    except nmap.PortScannerError as e:
-        logging.error(f"Nmap scan failed: {e}")
-        sys.exit(1)
+        logging.info(f"Performing aggressive vulnerability scan on {target}...")
+        scanner.scan(
+            target,
+            arguments="-T4 -A -sV --version-intensity 9 --script=vuln -Pn"
+        )
     except Exception as e:
-        logging.error(f"Unexpected error during scan: {e}")
+        logging.error(f"Nmap scan failed: {e}")
         sys.exit(1)
 
     results = {}
+
     for host in scanner.all_hosts():
-        logging.info(f"Results for {host}:")
-
+        logging.info(f"Scan results for {host}:")
         for proto in scanner[host].all_protocols():
-            ports = scanner[host].get(proto, {})
-
-            for port, port_data in ports.items():
+            for port, port_data in scanner[host][proto].items():
 
                 state = port_data.get("state", "unknown")
                 service = port_data.get("name", "unknown")
@@ -59,89 +54,88 @@ def aggressive_scan(target):
                 version = port_data.get("version", "")
                 extrainfo = port_data.get("extrainfo", "")
 
-                full_version = " ".join(filter(None, [product, version, extrainfo])) or "unknown"
+                full_version = " ".join(
+                    x for x in [product, version, extrainfo] if x
+                ) or "unknown"
 
-                logging.info(f"Port {port} ({service}) - Version: {full_version} - State: {state}")
+                logging.info(
+                    f"Port {port} ({service}) - Version: {full_version} - State: {state}"
+                )
 
                 if state == "open":
-                    results[port] = {"service": service, "version": full_version}
+                    results[port] = {
+                        "service": service,
+                        "version": full_version
+                    }
 
     return results
 
+
 def search_exploits(service, version):
-    """Search exploits using SearchSploit."""
-    search_query = f"{service} {version}" if version != 'unknown' else service
+    """Search exploits using SearchSploit with web references."""
+    query = f"{service} {version}".strip()
 
     try:
         result = subprocess.run(
-            ["searchsploit", search_query],
-            capture_output=True,
-            text=True,
-            check=False
-        )
-        output = result.stdout.strip()
-
-        if output:
-            logging.info(f"Exploits found for {service} {version}")
-            return output
-        else:
-            return "No known exploits found."
-
-    except Exception as e:
-        logging.error(f"SearchSploit error: {e}")
-        return "Error retrieving exploits."
-
-
-def search_exploits(service, version):
-    """Search exploits using SearchSploit."""
-    search_query = f"{service} {version}".strip()
-
-    try:
-        result = subprocess.run(
-            ["searchsploit", "-w", search_query],
+            ["searchsploit", "-w", query],
             capture_output=True,
             text=True
         )
 
-        if result.stdout.strip():
-            return result.stdout.strip()
-        elif result.stderr.strip():
-            return result.stderr.strip()
-        else:
-            return "No known exploits found."
+        output = result.stdout.strip() or result.stderr.strip()
+
+        return output if output else "No known exploits found."
 
     except Exception as e:
         logging.error(f"SearchSploit error: {e}")
         return "Error retrieving exploits."
 
+
 def save_full_report(target, scan_results):
-    """Save results of all ports into one report."""
-    
-    output_path = "/output/scan_report.txt"
-    report = f"Target: {target}\n\n"
-    report += "===== OPEN PORTS =====\n"
+    """Save results of all ports into a single report file."""
+
+    os.makedirs("output", exist_ok=True)
+    output_path = "output/scan_report.txt"
+
+    report = f"TARGET: {target}\n"
+    report += "=" * 60 + "\n"
+    report += "OPEN PORTS & EXPLOITS\n"
+    report += "=" * 60 + "\n"
 
     for port, data in scan_results.items():
-        report += (
-            f"\nPort {port} - Service: {data['service']} - Version: {data['version']}\n"
-        )
-        report += "Exploits:\n"
-        report += search_exploits(data["service"], data["version"])
-        report += "\n" + ("-" * 40) + "\n"
+        service = data["service"]
+        version = data["version"]
 
-    os.makedirs("/output", exist_ok=True)
+        report += (
+            f"\nPort {port}\n"
+            f"Service : {service}\n"
+            f"Version : {version}\n"
+            f"Exploits:\n"
+            f"{search_exploits(service, version)}\n"
+            + "-" * 60 + "\n"
+        )
 
     with open(output_path, "w") as f:
         f.write(report)
 
-    logging.info(f"Report saved to: {output_path}")
+    logging.info(f"Full report saved to: {output_path}")
 
 
 def main():
-    args = parse_args()
     check_dependencies()
-    scan_results = aggressive_scan(args.target)
-    save_full_report(args.target, scan_results)
+
+    target = input("Enter target IP or domain: ").strip()
+    if not target:
+        logging.error("No target entered. Exiting.")
+        sys.exit(1)
+
+    scan_results = aggressive_scan(target)
+    if not scan_results:
+        logging.info("No open ports found. Nothing to report.")
+        return
+
+    save_full_report(target, scan_results)
+
 
 if __name__ == "__main__":
     main()
