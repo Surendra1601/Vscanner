@@ -1,9 +1,10 @@
 name: Run Vscanner
 
 on:
-  workflow_dispatch:     # Run manually
+  workflow_dispatch:     # Run manually and on push
   push:
-      branches: [ "main" ]
+      branches:
+        - main
 
 jobs:
   scan:
@@ -19,7 +20,7 @@ jobs:
     - name: Run Scanner
       run: |
         docker run --rm \
-        -v ${{ github.workspace }}:/output \
+        -v "${{ github.workspace }}:/output" \
         vscanner scanme.nmap.org
 
     - name: Upload Report
