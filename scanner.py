@@ -94,8 +94,7 @@ def search_exploits(service, version):
 def save_full_report(target, scan_results):
     """Save results of all ports into a single report file."""
 
-    os.makedirs("output", exist_ok=True)
-    output_path = "output/scan_report.txt"
+    output_path = "/output/scan_report.txt"
 
     report = f"TARGET: {target}\n"
     report += "=" * 60 + "\n"
@@ -124,10 +123,11 @@ def save_full_report(target, scan_results):
 def main():
     check_dependencies()
 
-    target = input("Enter target IP or domain: ").strip()
-    if not target:
-        logging.error("No target entered. Exiting.")
+    if len(sys.argv) < 2:
+        logging.error("No target passed. Usage: python scanner.py <target>")
         sys.exit(1)
+
+    target = sys.argv[1].strip()
 
     scan_results = aggressive_scan(target)
     if not scan_results:
